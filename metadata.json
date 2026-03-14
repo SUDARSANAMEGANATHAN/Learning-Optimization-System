@@ -1,0 +1,5 @@
+{
+  "name": "AI Learning Assistant",
+  "description": "A comprehensive learning platform with AI-powered PDF summarization, flashcard generation, and quiz engine.",
+  "requestFramePermissions": []
+}
