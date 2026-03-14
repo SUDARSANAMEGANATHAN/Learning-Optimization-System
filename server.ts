@@ -19,7 +19,7 @@ async function startServer() {
     }
   });
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = 3000;
 
   // Socket.io logic
   io.on("connection", (socket) => {
@@ -54,9 +54,9 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
 }
 
 startServer();
