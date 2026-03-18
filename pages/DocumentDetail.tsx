@@ -124,8 +124,25 @@ const DocumentDetail: React.FC = () => {
       
     } catch (error) {
       console.error("Chat failed", error);
-      const errorMsg: ChatMessage = { role: 'model', content: "Sorry, I encountered an error while processing your request.", timestamp: Date.now(), userId: user?.id || '1' };
-      setMessages(prev => [...prev, errorMsg]);
+      const errorText = error instanceof Error
+        ? `Sorry, I couldn't answer right now. ${error.message}`
+        : "Sorry, I couldn't answer right now due to an unexpected server error.";
+
+      setMessages(prev => {
+        const updated = [...prev];
+        const lastMessage = updated[updated.length - 1];
+
+        if (lastMessage?.role === 'model' && lastMessage.content === "") {
+          updated[updated.length - 1] = {
+            ...lastMessage,
+            content: errorText,
+            timestamp: Date.now()
+          };
+          return updated;
+        }
+
+        return [...updated, { role: 'model', content: errorText, timestamp: Date.now(), userId: user?.id || '1' }];
+      });
     } finally {
       setIsTyping(false);
     }
