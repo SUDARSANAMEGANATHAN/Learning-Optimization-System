@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -10,7 +10,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const GEMINI_MODEL = "gemini-2.5-flash";
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const ai = geminiApiKey ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
@@ -47,8 +47,8 @@ async function startServer() {
   const io = new Server(httpServer, {
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
-    }
+      methods: ["GET", "POST"],
+    },
   });
 
   app.use((req, res, next) => {
@@ -83,14 +83,20 @@ async function startServer() {
 
   app.post("/api/ai/chat", async (req, res) => {
     try {
-      const { docText, history = [], message } = req.body as {
+      const {
+        docText,
+        history = [],
+        message,
+      } = req.body as {
         docText?: string;
         history?: { role: string; content: string }[];
         message?: string;
       };
 
       if (!docText || !message) {
-        return res.status(400).json({ error: "Document text and message are required." });
+        return res
+          .status(400)
+          .json({ error: "Document text and message are required." });
       }
 
       const client = ensureAiClient();
@@ -99,22 +105,25 @@ async function startServer() {
         contents: [
           ...history.map((item) => ({
             role: item.role === "user" ? "user" : "model",
-            parts: [{ text: item.content }]
+            parts: [{ text: item.content }],
           })),
-          { role: "user", parts: [{ text: message }] }
+          { role: "user", parts: [{ text: message }] },
         ],
         config: {
           systemInstruction: `You are a world-class Learning Assistant. Answer using the provided document when possible.
 
 DOCUMENT CONTENT:
-${docText.substring(0, 25000)}`
-        }
+${docText.substring(0, 25000)}`,
+        },
       });
 
       return res.json({ text: response.text || "" });
     } catch (error) {
       console.error("Chat failed", error);
-      return res.status(500).json({ error: "Chat request failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Chat request failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
@@ -129,22 +138,31 @@ ${docText.substring(0, 25000)}`
         model: GEMINI_MODEL,
         contents: `Summarize the following educational content in a structured way with key takeaways: ${text.substring(0, 15000)}`,
         config: {
-          systemInstruction: "You are an expert academic summarizer. Provide a concise, professional summary with bullet points for key concepts."
-        }
+          systemInstruction:
+            "You are an expert academic summarizer. Provide a concise, professional summary with bullet points for key concepts.",
+        },
       });
 
       return res.json({ text: response.text || "" });
     } catch (error) {
       console.error("Summary failed", error);
-      return res.status(500).json({ error: "Summary request failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Summary request failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
   app.post("/api/ai/explain", async (req, res) => {
     try {
-      const { docText, concept } = req.body as { docText?: string; concept?: string };
+      const { docText, concept } = req.body as {
+        docText?: string;
+        concept?: string;
+      };
       if (!docText || !concept) {
-        return res.status(400).json({ error: "Document text and concept are required." });
+        return res
+          .status(400)
+          .json({ error: "Document text and concept are required." });
       }
 
       const response = await ensureAiClient().models.generateContent({
@@ -155,14 +173,18 @@ Use clear formatting, examples, and step-by-step teaching where helpful.
 DOCUMENT CONTENT:
 ${docText.substring(0, 15000)}`,
         config: {
-          systemInstruction: "You are an expert tutor. Explain concepts deeply but simply. If the concept is not supported by the text, say so clearly."
-        }
+          systemInstruction:
+            "You are an expert tutor. Explain concepts deeply but simply. If the concept is not supported by the text, say so clearly.",
+        },
       });
 
       return res.json({ text: response.text || "" });
     } catch (error) {
       console.error("Explain failed", error);
-      return res.status(500).json({ error: "Concept explanation failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Concept explanation failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
@@ -189,18 +211,24 @@ ${text.substring(0, 15000)}`,
               properties: {
                 question: { type: Type.STRING },
                 answer: { type: Type.STRING },
-                difficulty: { type: Type.STRING, enum: ["easy", "medium", "hard"] }
+                difficulty: {
+                  type: Type.STRING,
+                  enum: ["easy", "medium", "hard"],
+                },
               },
-              required: ["question", "answer", "difficulty"]
-            }
-          }
-        }
+              required: ["question", "answer", "difficulty"],
+            },
+          },
+        },
       });
 
       return res.json({ cards: extractJsonArray(response.text) });
     } catch (error) {
       console.error("Flashcard generation failed", error);
-      return res.status(500).json({ error: "Flashcard generation failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Flashcard generation failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
@@ -227,18 +255,21 @@ ${text.substring(0, 10000)}`,
                 question: { type: Type.STRING },
                 options: { type: Type.ARRAY, items: { type: Type.STRING } },
                 correctIndex: { type: Type.NUMBER },
-                explanation: { type: Type.STRING }
+                explanation: { type: Type.STRING },
               },
-              required: ["question", "options", "correctIndex", "explanation"]
-            }
-          }
-        }
+              required: ["question", "options", "correctIndex", "explanation"],
+            },
+          },
+        },
       });
 
       return res.json({ questions: extractJsonArray(response.text) });
     } catch (error) {
       console.error("Quiz generation failed", error);
-      return res.status(500).json({ error: "Quiz generation failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Quiz generation failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
@@ -261,14 +292,18 @@ ${history.map((item) => `${item.userName}: ${item.content}`).join("\n")}
 
 New message: ${message}`,
         config: {
-          systemInstruction: "You are EduAI Bot, a supportive and academically helpful assistant."
-        }
+          systemInstruction:
+            "You are EduAI Bot, a supportive and academically helpful assistant.",
+        },
       });
 
       return res.json({ text: response.text || "" });
     } catch (error) {
       console.error("Community response failed", error);
-      return res.status(500).json({ error: "Community response failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Community response failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
@@ -296,34 +331,48 @@ Flashcards: ${userData.flashcards.map((f) => f.title).join(", ")}`,
             items: {
               type: Type.OBJECT,
               properties: {
-                type: { type: Type.STRING, enum: ["review", "quiz", "concept", "explore"] },
+                type: {
+                  type: Type.STRING,
+                  enum: ["review", "quiz", "concept", "explore"],
+                },
                 title: { type: Type.STRING },
                 description: { type: Type.STRING },
-                priority: { type: Type.STRING, enum: ["low", "medium", "high"] },
-                targetId: { type: Type.STRING }
+                priority: {
+                  type: Type.STRING,
+                  enum: ["low", "medium", "high"],
+                },
+                targetId: { type: Type.STRING },
               },
-              required: ["type", "title", "description", "priority"]
-            }
-          }
-        }
+              required: ["type", "title", "description", "priority"],
+            },
+          },
+        },
       });
 
       return res.json({ recommendations: extractJsonArray(response.text) });
     } catch (error) {
       console.error("Recommendations failed", error);
-      return res.status(500).json({ error: "Recommendations failed.", details: getErrorMessage(error) });
+      return res.status(500).json({
+        error: "Recommendations failed.",
+        details: getErrorMessage(error),
+      });
     }
   });
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: {
+          server: httpServer
+        }
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (_req, res) => {
+    app.get(/.*/, (_req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
